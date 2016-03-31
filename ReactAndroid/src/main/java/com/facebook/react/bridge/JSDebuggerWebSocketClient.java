@@ -25,9 +25,12 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
+import com.squareup.okhttp.ResponseBody;
 import com.squareup.okhttp.ws.WebSocket;
 import com.squareup.okhttp.ws.WebSocketCall;
 import com.squareup.okhttp.ws.WebSocketListener;
@@ -162,10 +165,8 @@ public class JSDebuggerWebSocketClient implements WebSocketListener {
           new IllegalStateException("WebSocket connection no longer valid"));
       return;
     }
-    Buffer messageBuffer = new Buffer();
-    messageBuffer.writeUtf8(message);
     try {
-      mWebSocket.sendMessage(WebSocket.PayloadType.TEXT, messageBuffer);
+      mWebSocket.sendMessage(RequestBody.create(WebSocket.TEXT, message));
     } catch (IOException e) {
       triggerRequestFailure(requestID, e);
     }
@@ -188,18 +189,13 @@ public class JSDebuggerWebSocketClient implements WebSocketListener {
   }
 
   @Override
-  public void onMessage(BufferedSource payload, WebSocket.PayloadType type) throws IOException {
-    if (type != WebSocket.PayloadType.TEXT) {
-      FLog.w(TAG, "Websocket received unexpected message with payload of type " + type);
+  public void onMessage(ResponseBody body) throws IOException {
+    if (!body.contentType().equals(WebSocket.TEXT)) {
+      FLog.w(TAG, "Websocket received unexpected message with payload of type " + body.contentType().type());
       return;
     }
 
-    String message = null;
-    try {
-      message = payload.readUtf8();
-    } finally {
-      payload.close();
-    }
+    String message = body.string();
     Integer replyID = null;
 
     try {

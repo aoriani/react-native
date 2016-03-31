@@ -29,7 +29,9 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
+import com.squareup.okhttp.ResponseBody;
 import com.squareup.okhttp.ws.WebSocket;
 import com.squareup.okhttp.ws.WebSocketCall;
 import com.squareup.okhttp.ws.WebSocketListener;
@@ -128,21 +130,13 @@ public class WebSocketModule extends ReactContextBaseJavaModule {
       }
 
       @Override
-      public void onMessage(BufferedSource bufferedSource, WebSocket.PayloadType payloadType) {
+      public void onMessage(ResponseBody body) {
         String message;
         try {
-          message = bufferedSource.readUtf8();
+          message = body.string();
         } catch (IOException e) {
           notifyWebSocketFailed(id, e.getMessage());
           return;
-        }
-        try {
-          bufferedSource.close();
-        } catch (IOException e) {
-          FLog.e(
-            ReactConstants.TAG,
-            "Could not close BufferedSource for WebSocket id " + id,
-            e);
         }
 
         WritableMap params = Arguments.createMap();
@@ -187,9 +181,7 @@ public class WebSocketModule extends ReactContextBaseJavaModule {
       throw new RuntimeException("Cannot send a message. Unknown WebSocket id " + id);
     }
     try {
-      client.sendMessage(
-        WebSocket.PayloadType.TEXT,
-        new Buffer().writeUtf8(message));
+      client.sendMessage(RequestBody.create(WebSocket.TEXT, message));
     } catch (IOException | IllegalStateException e) {
       notifyWebSocketFailed(id, e.getMessage());
     }
