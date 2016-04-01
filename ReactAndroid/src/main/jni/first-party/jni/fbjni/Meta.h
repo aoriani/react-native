@@ -99,9 +99,9 @@ DEFINE_PRIMITIVE_METHOD_CLASS(jdouble);
 /// Convenience type representing constructors
 /// These should only be used with JClass::getConstructor and JClass::newObject.
 template<typename F>
-struct JConstructor : private JMethod<F> {
+class JConstructor : private JMethod<F> {
   using JMethod<F>::JMethod;
- private:
+
   JConstructor(const JMethod<F>& other) : JMethod<F>(other.getId()) {}
   friend class JClass;
 };
