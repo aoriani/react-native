@@ -76,10 +76,10 @@ task prepareFolly(dependsOn: downloadFolly, type: Copy) {
 }
 
 task downloadGlog(dependsOn: createNativeDepsDirectories, type: Download) {
-    src 'https://github.com/google/glog/archive/v0.3.3.tar.gz'
+    src 'https://github.com/google/glog/archive/v0.3.4.tar.gz'
     onlyIfNewer true
     overwrite false
-    dest new File(downloadsDir, 'glog-0.3.3.tar.gz')
+    dest new File(downloadsDir, 'glog-0.3.4.tar.gz')
 }
 
 // Prepare glog sources to be compiled, this task will perform steps that normally should've been
@@ -87,7 +87,7 @@ task downloadGlog(dependsOn: createNativeDepsDirectories, type: Download) {
 task prepareGlog(dependsOn: downloadGlog, type: Copy) {
     from tarTree(downloadGlog.dest)
     from 'src/main/jni/third-party/glog/'
-    include 'glog-0.3.3/src/**/*', 'Android.mk', 'config.h'
+    include 'glog-0.3.4/src/**/*', 'Android.mk', 'config.h'
     includeEmptyDirs = false
     filesMatching('**/*.h.in') {
         filter(ReplaceTokens, tokens: [
@@ -216,7 +216,7 @@ task packageReactNdkLibsForBuck(dependsOn: packageReactNdkLibs, type: Copy) {
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.1"
+    buildToolsVersion "23.0.3"
 
     defaultConfig {
         minSdkVersion 16

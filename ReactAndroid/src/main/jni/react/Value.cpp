@@ -52,7 +52,7 @@ Object Value::asObject() {
   }
   Object ret = Object(context(), jsObj);
   m_value = nullptr;
-  return std::move(ret);
+  return ret;
 }
 
 Object::operator Value() const {

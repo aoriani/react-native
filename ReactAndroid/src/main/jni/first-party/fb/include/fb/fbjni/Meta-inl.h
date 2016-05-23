@@ -65,40 +65,6 @@ local_ref<JArrayClass<jobject>::javaobject> makeArgsArray(Args... args) {
   return arr;
 }
 
-
-bool needsSlowPath(alias_ref<jobject> obj) {
-#if defined(__ANDROID__)
-  // On Android 6.0, art crashes when attempting to call a function on a Proxy.
-  // So, when we detect that case we must use the safe, slow workaround. That is,
-  // we resolve the method id to the corresponding java.lang.reflect.Method object
-  // and make the call via it's invoke() method.
-  static auto android_sdk = ([] {
-     char sdk_version_str[PROP_VALUE_MAX];
-     __system_property_get("ro.build.version.sdk", sdk_version_str);
-     return atoi(sdk_version_str);
-  })();
-  static auto is_bad_android = android_sdk == 23;
-  if (!is_bad_android) return false;
-  static auto proxy_class = findClassStatic("java/lang/reflect/Proxy");
-  return obj->isInstanceOf(proxy_class);
-#else
-  return false;
-#endif
-}
-
-}
-
-template <typename... Args>
-local_ref<jobject> slowCall(jmethodID method_id, alias_ref<jobject> self, Args... args) {
-    static auto invoke = findClassStatic("java/lang/reflect/Method")
-      ->getMethod<jobject(jobject, JArrayClass<jobject>::javaobject)>("invoke");
-    // TODO(xxxxxxx): Provide fbjni interface to ToReflectedMethod.
-    auto reflected = adopt_local(Environment::current()->ToReflectedMethod(self->getClass().get(), method_id, JNI_FALSE));
-    FACEBOOK_JNI_THROW_PENDING_EXCEPTION();
-    if (!reflected) throw JniException();
-    auto argsArray = makeArgsArray(args...);
-    // No need to check for exceptions since invoke is itself a JMethod that will do that for us.
-    return invoke(reflected, self.get(), argsArray.get());
 }
 
 template<typename... Args>
@@ -196,6 +162,19 @@ DEFINE_PRIMITIVE_STATIC_CALL(jlong, Long)
 DEFINE_PRIMITIVE_STATIC_CALL(jfloat, Float)
 DEFINE_PRIMITIVE_STATIC_CALL(jdouble, Double)
 #pragma pop_macro("DEFINE_PRIMITIVE_STATIC_CALL")
+
+template <typename... Args>
+local_ref<jobject> slowCall(jmethodID method_id, alias_ref<jobject> self, Args... args) {
+    static auto invoke = findClassStatic("java/lang/reflect/Method")
+      ->getMethod<jobject(jobject, JArrayClass<jobject>::javaobject)>("invoke");
+    // TODO(xxxxxxx): Provide fbjni interface to ToReflectedMethod.
+    auto reflected = adopt_local(Environment::current()->ToReflectedMethod(self->getClass().get(), method_id, JNI_FALSE));
+    FACEBOOK_JNI_THROW_PENDING_EXCEPTION();
+    if (!reflected) throw JniException();
+    auto argsArray = makeArgsArray(args...);
+    // No need to check for exceptions since invoke is itself a JMethod that will do that for us.
+    return invoke(reflected, self.get(), argsArray.get());
+}
 
 /// JStaticMethod specialization for references that wraps the return value in a @ref local_ref
 template<typename R, typename... Args>
